@@ -55,41 +55,15 @@ func (client *client) connectToServer(server *server) {
 		server.tcpStream <- synAckAckPacket
 		message := "Hello World!"
 		var messagePackets []clientPacket
-		messagePackets = createMessagePackets(message, client)
+		messagePackets = client.marshalMessage(message)
 		fmt.Println("Message packets created!")
 		for i, packet := range messagePackets {
-			fmt.Printf("Sending packet #%d\n", i)
+			time.Sleep(time.Second)
+			fmt.Printf("Sending packet #%d containing \"%s\"\n", i, packet.message)
 			server.tcpStream <- packet
-			<-client.tcpStream // Packet was received
+			//<-client.tcpStream // Packet was received
 		}
 	}
-}
-
-func createMessagePackets(message string, client *client) []clientPacket {
-	packetSize := 5
-	length := len(message) / packetSize
-	if len(message)%packetSize != 0 {
-		length += 1
-	}
-	var packets []clientPacket
-	packets = make([]clientPacket, length)
-	for i := 0; i < length; i++ {
-		var sliceOfMessage string
-		if i*packetSize+packetSize < len(message) {
-			sliceOfMessage = message[i*packetSize : i*packetSize+packetSize]
-		} else {
-			sliceOfMessage = message[i*packetSize:]
-		}
-		packet := clientPacket{
-			sliceOfMessage,
-			*client,
-			i,
-			length,
-		}
-		packets = append(packets, packet)
-	}
-
-	return packets
 }
 
 func (server *server) listenForPackets() {
@@ -107,8 +81,8 @@ func (server *server) listenForPackets() {
 				fmt.Printf("Packet #%d received\n", packet.index)
 				// validation
 				packets = append(packets, packet)
-				packet.client.tcpStream <- "Packet received!"
-				fmt.Println("Ack packet returned")
+				//packet.client.tcpStream <- "Packet received!"
+				//fmt.Println("Ack packet returned")
 				if packet.index == packet.totalPackets-1 {
 					fmt.Println("All packets were received!")
 					break
@@ -121,4 +95,33 @@ func (server *server) listenForPackets() {
 			fmt.Println("Received message from client: \"" + originalMessage + "\"")
 		}
 	}
+}
+
+func (client *client) marshalMessage(message string) []clientPacket {
+	packetSize := 5
+	length := len(message) / packetSize
+	if len(message)%packetSize != 0 {
+		length += 1
+	}
+	fmt.Printf("Amount of packets to send: %d\n", length)
+
+	var packets = make([]clientPacket, length)
+
+	for i := 0; i < length; i++ {
+		var sliceOfMessage string
+		if i*packetSize+packetSize < len(message) {
+			sliceOfMessage = message[i*packetSize : i*packetSize+packetSize]
+		} else {
+			sliceOfMessage = message[i*packetSize:]
+		}
+		packet := clientPacket{
+			sliceOfMessage,
+			*client,
+			i,
+			length,
+		}
+		packets = append(packets, packet)
+		fmt.Printf("Amount of packets created: %d\n", len(packets))
+	}
+	return packets
 }
