@@ -24,4 +24,5 @@ It doesn't:)
 
 e) Why is the 3-way handshake important?
 
-It makes sure that both sides know that they are ready to transfer data, it is when you crossed the road as a child, look left, right and then left agaiin:)
+It makes sure that both sides know that they are ready to transfer data, it is when you crossed the road as a child, look left, right and then left again:)
+It is also necessary since both the server and the client needs to synchronize their segment sequence numbers.
