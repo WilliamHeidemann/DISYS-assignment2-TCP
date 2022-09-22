@@ -9,7 +9,7 @@ the number of total packets and the index (int), meaning what number of packet i
 b) Does your implementation use threads or processes? Why is it not realistic to use threads?
 
 Our implementation use threads, though it is not realistic to use threads in real life as this communication would happen between different 
-systems and not within the same program.
+programs and not within the same program.
 
 
 c) How do you handle message re-ordering?
