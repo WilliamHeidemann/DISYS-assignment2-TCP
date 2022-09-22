@@ -45,6 +45,8 @@ func (client *client) connectToServer(server *server) {
 	server.tcpStream <- synPacket
 	response := <-client.tcpStream
 	// error handling
+	fmt.Printf("Client received the following packet: %s\n", response)
+	time.Sleep(time.Second)
 	if response == "SYN ACK" {
 		synAckAckPacket := clientPacket{
 			"SYN ACK ACK",
@@ -53,13 +55,18 @@ func (client *client) connectToServer(server *server) {
 			1,
 		}
 		server.tcpStream <- synAckAckPacket
+		time.Sleep(time.Second)
+
 		message := "Hello World!"
 		var messagePackets []clientPacket
 		messagePackets = client.marshalMessage(message)
 		fmt.Println("Message packets created!")
-		for i, packet := range messagePackets {
+		for _, packet := range messagePackets {
+			if len(packet.message) == 0 {
+				continue // Slice creates extra empty packets not meant to be sent
+			}
 			time.Sleep(time.Second)
-			fmt.Printf("Sending packet #%d containing \"%s\"\n", i, packet.message)
+			//fmt.Printf("Sending packet #%d containing \"%s\"\n", packet.index, packet.message)
 			server.tcpStream <- packet
 			//<-client.tcpStream // Packet was received
 		}
@@ -69,6 +76,8 @@ func (client *client) connectToServer(server *server) {
 func (server *server) listenForPackets() {
 	for {
 		packet := <-server.tcpStream
+		fmt.Printf("Server received the following packet: %s\n", packet.message)
+		time.Sleep(time.Second)
 		switch packet.message {
 		case "SYN":
 			packet.client.tcpStream <- "SYN ACK"
@@ -78,10 +87,10 @@ func (server *server) listenForPackets() {
 			packets = make([]clientPacket, 10)
 			for {
 				packet = <-server.tcpStream
-				fmt.Printf("Packet #%d received\n", packet.index)
+				fmt.Printf("Server recieved packet #%d containing \"%s\"\n", packet.index, packet.message)
 				// validation
 				packets = append(packets, packet)
-				//packet.client.tcpStream <- "Packet received!"
+				//packet.client.tcpStream <- "Packet received!" // Den her linje virker ikke
 				//fmt.Println("Ack packet returned")
 				if packet.index == packet.totalPackets-1 {
 					fmt.Println("All packets were received!")
@@ -98,6 +107,8 @@ func (server *server) listenForPackets() {
 }
 
 func (client *client) marshalMessage(message string) []clientPacket {
+	fmt.Println("Marshalling message...")
+
 	packetSize := 5
 	length := len(message) / packetSize
 	if len(message)%packetSize != 0 {
@@ -121,7 +132,9 @@ func (client *client) marshalMessage(message string) []clientPacket {
 			length,
 		}
 		packets = append(packets, packet)
-		fmt.Printf("Amount of packets created: %d\n", len(packets))
+		fmt.Printf("Created packet %d out of %d\n", packet.index+1, packet.totalPackets)
+		time.Sleep(time.Second)
+		//fmt.Printf("Amount of packets created: %d\n", len(packets))
 	}
 	return packets
 }
