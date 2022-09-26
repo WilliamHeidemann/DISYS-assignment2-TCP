@@ -2,37 +2,51 @@ package main
 
 import (
 	"fmt"
-	"time"
+	"sort"
 )
 
 type server struct {
 	tcpStream chan clientPacket
 }
 
+type serverPacket struct {
+	message string
+	client  client
+}
+
 func (server *server) listenForPackets() {
 	for {
 		packet := <-server.tcpStream
 		fmt.Printf("Server received the following packet: %s\n", packet.message)
-		time.Sleep(time.Second)
 		switch packet.message {
 		case "SYN":
-			packet.client.tcpStream <- "SYN ACK"
+			synAckPacket := serverPacket{
+				"SYN ACK",
+				packet.client,
+			}
+			forwardServerMessage(synAckPacket)
 		case "SYN ACK ACK":
 			fmt.Println("Connection between server and client established!")
+
 			var packets []clientPacket
-			packets = make([]clientPacket, 10)
+			packets = make([]clientPacket, 0)
+
 			for {
-				packet = <-server.tcpStream
+				packet := <-server.tcpStream
 				fmt.Printf("Server recieved packet #%d containing \"%s\"\n", packet.index, packet.message)
 				// validation
 				packets = append(packets, packet)
-				//packet.client.tcpStream <- "Packet received!" // Den her linje virker ikke
-				//fmt.Println("Ack packet returned")
-				if packet.index == packet.totalPackets-1 {
-					fmt.Println("All packets were received!")
+				fmt.Printf("Packet length is: %d\n", len(packets))
+				if len(packets) == packet.totalPackets {
 					break
 				}
 			}
+
+			// order packets
+			sort.Slice(packets, func(i, j int) bool {
+				return packets[i].index < packets[j].index
+			})
+
 			var originalMessage string
 			for _, packet := range packets {
 				originalMessage += packet.message

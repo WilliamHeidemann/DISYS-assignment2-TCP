@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"time"
 )
 
 type client struct {
@@ -13,6 +12,7 @@ type clientPacket struct {
 	client       client
 	index        int
 	totalPackets int
+	server       server
 }
 
 func (client *client) connectToServer(server *server) {
@@ -21,39 +21,38 @@ func (client *client) connectToServer(server *server) {
 		*client,
 		1,
 		1,
+		*server,
 	}
 	server.tcpStream <- synPacket
 	response := <-client.tcpStream
 	// error handling
 	fmt.Printf("Client received the following packet: %s\n", response)
-	time.Sleep(time.Second)
 	if response == "SYN ACK" {
 		synAckAckPacket := clientPacket{
 			"SYN ACK ACK",
 			*client,
 			1,
 			1,
+			*server,
 		}
-		server.tcpStream <- synAckAckPacket
-		time.Sleep(time.Second)
+		forward(synAckAckPacket)
 
 		message := "Hello World!"
 		var messagePackets []clientPacket
-		messagePackets = client.marshalMessage(message)
+		messagePackets = client.marshalMessage(message, server)
 		fmt.Println("Message packets created!")
 		for _, packet := range messagePackets {
 			if len(packet.message) == 0 {
 				continue // Slice creates extra empty packets not meant to be sent
 			}
-			time.Sleep(time.Second)
 			//fmt.Printf("Sending packet #%d containing \"%s\"\n", packet.index, packet.message)
-			server.tcpStream <- packet
+			go forward(packet)
 			//<-client.tcpStream // Packet was received
 		}
 	}
 }
 
-func (client *client) marshalMessage(message string) []clientPacket {
+func (client *client) marshalMessage(message string, server *server) []clientPacket {
 	fmt.Println("Marshalling message...")
 
 	packetSize := 5
@@ -77,11 +76,10 @@ func (client *client) marshalMessage(message string) []clientPacket {
 			*client,
 			i,
 			length,
+			*server,
 		}
 		packets = append(packets, packet)
 		fmt.Printf("Created packet %d out of %d\n", packet.index+1, packet.totalPackets)
-		time.Sleep(time.Second)
-		//fmt.Printf("Amount of packets created: %d\n", len(packets))
 	}
 	return packets
 }
