@@ -33,17 +33,24 @@ func (server *server) listenForPackets() {
 			var packets []clientPacket
 			packets = make([]clientPacket, 0)
 
+		serverPacketLoop:
 			for {
 				packet := <-server.tcpStream
 				fmt.Printf("Server recieved packet #%d containing \"%s\"\n", packet.index, packet.message)
-				packets = append(packets, packet)
-
 				serverPacket := serverPacket{
 					strconv.Itoa(packet.index),
 					packet.client,
 				}
 
 				sendACK(serverPacket)
+
+				for i := 0; i < len(packets); i++ {
+					if packets[i].index == packet.index {
+						continue serverPacketLoop
+					}
+				}
+
+				packets = append(packets, packet)
 
 				if len(packets) == packet.totalPackets {
 					fmt.Println("BREAKING FREE")

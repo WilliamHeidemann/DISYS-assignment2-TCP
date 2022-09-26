@@ -8,7 +8,7 @@ import (
 )
 
 func forward(packet clientPacket) {
-	var number = rand.Intn(2)
+	var number = rand.Intn(10)
 	switch number {
 	case 0:
 		fmt.Printf("DROPPING CLIENT PACKET %d\n", packet.index)
@@ -30,14 +30,14 @@ func send(packet clientPacket) {
 }
 
 func sendACK(packet serverPacket) {
-	var number = rand.Intn(2)
+	var number = rand.Intn(10)
 	switch number {
 	case 0:
 		index, _ := strconv.Atoi(packet.message)
 		fmt.Printf("DROPPING ACK PACKET %d\n", index)
 	default:
 		index, _ := strconv.Atoi(packet.message)
-		fmt.Printf("ACK INDEX IS %d\n", index)
+		fmt.Printf("SENDING ACK INDEX IS %d\n", index)
 		packet.client.ackStream <- index
 	}
 }
