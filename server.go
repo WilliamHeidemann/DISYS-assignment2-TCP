@@ -3,10 +3,12 @@ package main
 import (
 	"fmt"
 	"sort"
+	"strconv"
 )
 
 type server struct {
-	tcpStream chan clientPacket
+	tcpStream      chan clientPacket
+	messageToPrint chan string
 }
 
 type serverPacket struct {
@@ -34,10 +36,17 @@ func (server *server) listenForPackets() {
 			for {
 				packet := <-server.tcpStream
 				fmt.Printf("Server recieved packet #%d containing \"%s\"\n", packet.index, packet.message)
-				// validation
 				packets = append(packets, packet)
-				fmt.Printf("Packet length is: %d\n", len(packets))
+
+				serverPacket := serverPacket{
+					strconv.Itoa(packet.index),
+					packet.client,
+				}
+
+				sendACK(serverPacket)
+
 				if len(packets) == packet.totalPackets {
+					fmt.Println("BREAKING FREE")
 					break
 				}
 			}
@@ -52,6 +61,9 @@ func (server *server) listenForPackets() {
 				originalMessage += packet.message
 			}
 			fmt.Println("Received message from client: \"" + originalMessage + "\"")
+			server.messageToPrint <- originalMessage
+		default:
+			return
 		}
 	}
 }

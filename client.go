@@ -2,10 +2,13 @@ package main
 
 import (
 	"fmt"
+	"time"
 )
 
 type client struct {
 	tcpStream chan string
+	ackStream chan int
+	acks      []int
 }
 type clientPacket struct {
 	message      string
@@ -41,14 +44,36 @@ func (client *client) connectToServer(server *server) {
 		var messagePackets []clientPacket
 		messagePackets = client.marshalMessage(message, server)
 		fmt.Println("Message packets created!")
+
 		for _, packet := range messagePackets {
 			if len(packet.message) == 0 {
 				continue // Slice creates extra empty packets not meant to be sent
 			}
 			//fmt.Printf("Sending packet #%d containing \"%s\"\n", packet.index, packet.message)
-			go forward(packet)
+			go client.receiveAcks()
+			go client.sendAndWaitForAck(packet)
 			//<-client.tcpStream // Packet was received
 		}
+	}
+}
+
+func (client *client) sendAndWaitForAck(packet clientPacket) {
+out:
+	for {
+		go forward(packet)
+		time.Sleep(time.Second * 5)
+		for index := range client.acks {
+			if index == packet.index {
+				break out
+			}
+		}
+	}
+}
+
+func (client *client) receiveAcks() {
+	for {
+		ackIndex := <-client.ackStream
+		client.acks = append(client.acks, ackIndex)
 	}
 }
 
