@@ -15,6 +15,7 @@ The server is responsible for ordering its received messages.
 When the original message has been ordered, it will be printed to the terminal and the 
 program will terminate. 
 
+The program is run by typing `go run ./` with the terminal in this directory.
 
 a) What are packages in your implementation? What data structure do you use to transmit data and meta-data?
 
